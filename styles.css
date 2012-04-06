@@ -1,0 +1,140 @@
+
+.Background
+{
+	background-color: #171814;
+}
+
+
+#Display
+{
+	float:left;
+	width:49%;
+	height:50%;
+
+	color: #3366FF;
+	background-color: #000025;
+
+	border: 2px solid #3366FF;
+	border-radius: 10px;
+
+	-webkit-box-shadow: 0px 0px 10px 5px #0066FF inset, 0px 0px 5px 2px #0066FF;
+	   -moz-box-shadow: 0px 0px 10px 5px #0066FF inset, 0px 0px 5px 2px #0066FF;
+	        box-shadow: 0px 0px 10px 5px #0066FF inset, 0px 0px 5px 2px #0066FF;
+}
+
+
+#CodeEditor
+{
+	float:right;
+	width:50%;
+}
+
+
+#Info
+{
+	float:left;
+	width:48.5%;
+	margin-top:10px;
+	padding:5px;
+	border: 1px dashed black;
+	color:#777;
+	background-color: #151515;
+	font-family:monospace;
+	font-size:10px
+}
+
+
+#Info a
+{
+	color:#CCC;
+	text-decoration:none;
+}
+#Info a:hover
+{
+	border-bottom: 1px dotted white;
+}
+
+
+.Button
+{
+	position:absolute;
+	left:88%;
+
+	font-family:monospace;
+
+	color:#CCC;
+	background-color:#151515;
+	margin: 10px 0px 0px 10px;
+	border: 1px solid #444;
+
+	transition: all 0.5s;
+	-moz-transition: all 0.5s; /* Firefox 4 */
+	-webkit-transition: all 0.5s; /* Safari and Chrome */
+	-o-transition: all 0.5s; /* Opera */	
+
+	opacity: 0.5;
+}
+.Button:hover
+{
+	opacity: 1;
+}
+
+
+
+.LineError
+{
+	border: dashed 1px #881814 !important;
+	border-radius: 3px !important;
+}
+
+.ErrorBox
+{
+	color: black;
+	background-color:#CCBB00;
+
+	width:80%;
+	height:12px;
+
+	opacity:0.8;
+
+	border: solid 1px transparent;
+	border-radius: 5px;
+}
+
+
+/* Overrides for CodeMirror */
+
+
+.CodeMirror
+{
+	width:95%;
+	height:80%;
+
+	color: #F8F8F2;
+	background-color: #272822;
+
+	border:0px;
+	border-top: 1px solid #3C3D39;
+	border-left: 1px solid #3C3D39;
+	border-right: 1px solid #2C2D29;
+	border-bottom: 1px solid #2C2D29;
+
+	padding: 10px;
+
+	-webkit-box-shadow: 0px 0px 0px 1px #0b0c0a;
+	   -moz-box-shadow: 0px 0px 0px 1px #0b0c0a;
+	        box-shadow: 0px 0px 0px 1px #0b0c0a;
+}
+
+
+.CodeMirror-gutter-text
+{
+	border-right: 1px solid #333;
+	padding-right: 10px;
+}
+
+
+.CodeMirror-scroll
+{
+	height:100%;
+}

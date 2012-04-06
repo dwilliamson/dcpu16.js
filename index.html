@@ -1,0 +1,253 @@
+
+<html>
+
+	<head>
+
+		<!-- Syntax highlighting textarea for various languages with custom dcpu16 support -->
+		<link rel="stylesheet" href="CodeMirror-2.23/lib/codemirror.css">
+		<link rel="stylesheet" href="CodeMirror-2.23/theme/monokai.css">
+		<script src="CodeMirror-2.23/lib/codemirror.js"></script>
+		<script src="CodeMirror-2.23/mode/dcpu16/dcpu16.js"></script>
+
+		<link rel="stylesheet" type="text/css" href="styles.css" />
+		<script type="text/javascript" src="dcpu16.js"></script>
+
+		<script type="text/javascript" src="displayutils.js"></script>
+
+	</head>
+
+	<body class="Background">
+
+		<div id="Display">
+			<canvas id="DisplayCanvas" width="100" height="100"></canvas>
+		</div>
+
+		<div id="CodeEditor">
+
+			<textarea id="CodeTextArea">
+; Assembler test for DCPU
+; by Markus Persson
+
+:start
+	set i, 0
+	set j, 0
+	set b, 0xf100
+
+:nextchar
+	set a, [data+i]
+	ife a, 0
+	    set PC, end
+	ifg a, 0xff
+	    set PC, setcolor
+	bor a, b
+	set [0x8000+j], a
+	add i, 1
+	add j, 1
+	set PC, nextchar
+
+:setcolor
+	set b, a
+	and b, 0xff
+	shl b, 8
+	ifg a, 0x1ff
+	    add b, 0x80
+	add i, 1
+	set PC, nextchar
+
+:end
+	set PC, end
+
+:data
+	dat 0x170, "Hello ", 0x2e1, "world", 0x170, ", how are you?"</textarea>
+
+		</div>
+
+		<div id="Info">
+			LIVE EDIT/ASSEMBLE/EMULATE ENVIRONMENT FOR MOJANG'S DCPU-16 MACHINE<br>
+			<br>
+			As you write code on the right, the Assembler will compile on each change you make. Any errors will be highlighted for you and whenever you have an error-free program, the new code is uploaded to the Emulator, above.<br>
+			<br>
+			You can create a permanent link to your program by clicking the Permalink button on the top right and copying the text in the browser URL bar. It's probably worth shortening it with something like <a href="https://bitly.com/">bit.ly</a> for linking to on websites.<br>
+			<br>
+
+			Code by <a href="https://twitter.com/#!/Donzanoid">@Donzanoid</a><br>
+			Machine specs documented at <a href="http://0x10c.com/doc/dcpu-16.txt">0x10c</a><br>
+			Syntax highlighting editor by <a href="http://codemirror.net/">CodeMirror</a><br>
+			Display font based on <a href="http://fontstruct.com/fontstructions/show/152993">Arriva 7x3</a>
+
+		</div>
+
+		<script>
+
+
+		var LastCodeHash = 0;
+		var Errors = [ ];
+		var ErrorNodes = [ ];
+		var Emulator = new dcpuEmulator();
+		var CharacterSet = null;
+
+
+		function OnCursorMove(cm)
+		{
+			// Clear out the error nodes
+			for (var i = 0; i < ErrorNodes.length; i++)
+				ErrorNodes[i].parentNode.removeChild(ErrorNodes[i]);
+			ErrorNodes = [ ];
+
+			// Search for the matching error under the cursor
+			var cursor = cm.getCursor();
+			var displine = cursor.line;
+			for (var i in Errors)
+			{
+				var error = Errors[i];
+				if (error[1] == cursor.line + 1)
+				{
+					var node = document.createElement("div");
+					node.className = "ErrorBox";
+					node.innerHTML = error[0];
+					ErrorNodes.push(node);
+
+					cm.addWidget({line:displine++, ch:0}, node, false);
+
+					break;
+				}
+			}
+		}
+
+
+		var cm = CodeMirror.fromTextArea(document.getElementById("CodeTextArea"), configuration =
+		{
+			theme: "monokai",
+			mode: "dcpu16",
+			smartIndent: false,
+			indentWithTabs: true,
+			lineNumbers: true,
+			gutter: true,
+			onCursorActivity: OnCursorMove
+		});
+
+
+		// Populate with any code found in the URL
+		var loc = window.location.href;
+		if (loc.indexOf("#") != -1)
+		{
+			code = loc.split("#")[1];
+			cm.setValue(unescape(code));
+		}
+
+
+		function RepeatAssembleCurrentCode()
+		{
+			// Only run the assembler when changes have been found
+			var code = cm.getValue();
+			var code_hash = HashString(code);
+			if (LastCodeHash != code_hash)
+			{
+				LastCodeHash = code_hash;
+
+				// Assemble the code bits
+				var report = new dcpuReport();
+				var assembler = new dcpuAssembler(report);
+				assembler.Assemble(code);
+				Errors = report.Content;
+
+				// Clear out error markers from the previous build
+				var nb_lines = cm.lineCount();
+				for (var i = 0; i < nb_lines; i++)
+					cm.setLineClass(i, null, null);
+
+				// Update with new error markers
+				for (var i in report.Content)
+				{
+					var content = report.Content[i];
+					var line = content[1];
+					cm.setLineClass(line - 1, null, "LineError");
+				}
+
+				OnCursorMove(cm);
+
+				// Update the emulator with the new code if there are no errors
+				if (!report.Content.length)
+				{
+					Emulator.UploadCode(assembler.WordCode);
+
+					if (CharacterSet)
+						Emulator.UploadCharacterSet(CharacterSet);
+				}
+			}
+
+			setTimeout(RepeatAssembleCurrentCode, 100);
+		}
+
+
+		var Time = 0;
+
+
+		function RepeatUpdateMachine()
+		{
+			// 60fps
+			setTimeout(RepeatUpdateMachine, 16);
+			Time += 16;
+
+			// Effectively a 62.5kHz machine :)
+			for (var i = 0; i < 1000; i++)
+				Emulator.DecodeInstruction();
+
+			var canvas = document.getElementById("DisplayCanvas");
+			canvas.style.position = "relative";
+			canvas.style.left = "10px";
+			canvas.style.top = "10px";
+			var w = canvas.parentNode.offsetWidth - 25;
+			var h = canvas.parentNode.offsetHeight - 25;
+			canvas.width = w;
+			canvas.height = h;
+
+			var ctx = canvas.getContext("2d");
+			var vb = Emulator.GenerateVideoBuffer();
+			ctx.drawImage(vb, 0, 0, canvas.width, canvas.height);
+
+			// [0...1]
+			var t = Math.cos(Math.PI / 1000 * Time) * 0.5 + 0.5;
+
+			var d = document.getElementById("Display");
+			var color = lerprgb(0x0066FF, 0x004488, t);
+			var glow = "0px 0px 10px 5px #" + dec2hex(color) + " inset, 0px 0px 5px 2px #" + dec2hex(color);
+			changecssproperty(d, shadowprop, glow);
+		}
+
+
+		RepeatAssembleCurrentCode();
+		RepeatUpdateMachine();
+
+
+		window.onload = function()
+		{
+			// Load the font image and upload as the character set
+			var image = new Image();
+			image.onload = function()
+			{
+				Emulator.UploadCharacterSet(this);
+				CharacterSet = this;
+			}
+			image.src = "font.gif";
+		}
+
+		function Permalink()
+		{
+			// Split any refs from the location
+			var loc = window.location.href;
+			if (loc.indexOf("#") != -1)
+				loc = loc.split("#")[0];
+
+			// Put the code in the URL
+			var code = escape(cm.getValue());
+			window.location = loc + "#" + code;
+		}
+
+		</script>
+
+		<button class="Button" onclick="Permalink()">Code Permalink</button>
+
+	</body>
+
+</html>
