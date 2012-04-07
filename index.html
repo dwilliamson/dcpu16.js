@@ -63,18 +63,21 @@
 		</div>
 
 		<div id="Info">
-			LIVE EDIT/ASSEMBLE/EMULATE ENVIRONMENT FOR MOJANG'S DCPU-16 MACHINE<br>
+			LIVE EDIT ENVIRONMENT FOR MOJANG'S <a href="http://0x10c.com/doc/dcpu-16.txt">DCPU-16 MACHINE</a><br>
 			<br>
-			As you write code on the right, the Assembler will compile on each change you make. Any errors will be highlighted for you and whenever you have an error-free program, the new code is uploaded to the Emulator, above.<br>
+			Features:<br>
+			<li>Assembler runs each time you type, compiling to DCPU-16 bytecode.</li>
+			<li>Code is syntax-highlighted and errors display in-line as you type.</li>
+			<li>Machine is emulated and re-runs code changes on each successful compile.</li>
+			<li>Generate links to your code by clicking "Code Permalink" button.</li>
 			<br>
-			You can create a permanent link to your program by clicking the Permalink button on the top right and copying the text in the browser URL bar. It's probably worth shortening it with something like <a href="https://bitly.com/">bit.ly</a> for linking to on websites.<br>
+			Programming details:<br>
+			<li>Simulated 62.5kHz machine with each instruction taking 1 cycle (not per spec, yet).</li>
+			<li>Video memory located at 0x8000 with 30x10 characters, each character 8x4 in size.</li>
+			<li>Character set located at 0x9000: 2 words per character, each column taking 8-bits.</li>
 			<br>
-
 			Code by <a href="https://twitter.com/#!/Donzanoid">@Donzanoid</a><br>
-			Machine specs documented at <a href="http://0x10c.com/doc/dcpu-16.txt">0x10c</a><br>
-			Syntax highlighting editor by <a href="http://codemirror.net/">CodeMirror</a><br>
-			Display font based on <a href="http://fontstruct.com/fontstructions/show/152993">Arriva 7x3</a>
-
+			
 		</div>
 
 		<script>
