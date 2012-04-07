@@ -2,7 +2,7 @@
 // Based on the existing Go mode (that was the easiest to break down)
 // by Don Williamson
 //
-CodeMirror.defineMode("dcpu16", function(config, parserConfig)
+CodeMirror.defineMode("dcpu", function(config, parserConfig)
 {
 	var keywords =
 	{
