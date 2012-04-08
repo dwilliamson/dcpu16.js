@@ -943,8 +943,8 @@ function dcpuEmulator()
 		if (!this.VideoBuffer)
 		{
 			this.VideoBuffer = document.createElement("canvas");
-			this.VideoBuffer.width = 30 * 4;
-			this.VideoBuffer.height = 10 * 8;
+			this.VideoBuffer.width = 32 * 4;
+			this.VideoBuffer.height = 12 * 8;
 			this.VideoBuffer.Ctx = this.VideoBuffer.getContext("2d");
 		}
 
@@ -966,7 +966,7 @@ function dcpuEmulator()
 		var image_data = this.VideoBuffer.Ctx.getImageData(0, 0, w, h);
 		var data = image_data.data;
 
-		var line_width = w * 8 * 4;
+		var line_width = w * 7 * 4;
 		var char_width = 4 * 4;
 
 		for (var y = 0, i = 0, po = 0; y < h; y += 8, po += line_width)
