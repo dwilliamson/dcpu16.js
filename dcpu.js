@@ -32,6 +32,13 @@ function dcpuReport()
 {
 	this.Content = [ ];
 
+
+	this.Reset = function()
+	{
+		this.Content = [ ];
+	}
+
+
 	this.Log = function(text, line)
 	{
 		this.Content.push([ text, line ]);
@@ -86,6 +93,7 @@ dcpuOpcodes = {
 
 	// Non-basic opcodes
 	JSR: 0x10000,
+	BRK: 0x20000,	// custom breakpoint extension
 
 	// Not an opcode - purely here for the lexer
 	DAT: 0xFFFFFFFF,
@@ -245,7 +253,7 @@ function dcpuLexer(report)
 		while (this.Pos < this.Length)
 		{
 			var c = this.Text[this.Pos];
-			if (!isalpha(c))
+			if (!isalnum(c) && c != "." && c != "_")
 				break;
 			text += c;
 			this.Pos++;
@@ -297,7 +305,7 @@ function dcpuLexer(report)
 						return this.ParseNumber();
 					}
 
-					else if (isalpha(c))
+					else if (isalpha(c) || c == "." || c == "_")
 					{
 						return this.ParseText();
 					}
@@ -343,6 +351,7 @@ function dcpuAssembler(report)
 	this.LabelPatches = [ ];
 	this.WordCode = [ ];
 	this.Line = 0;
+	this.PCToLine = { };
 
 
 	this.AddLabelPatch = function(label, offset)
@@ -358,10 +367,18 @@ function dcpuAssembler(report)
 		if (token[0] != dcpuTokens.LABEL)
 		{
 			this.Report.ExpectingToken(dcpuTokens.LABEL, token[0], this.Line);
-			return false;
+			return;
 		}
 
 		this.Labels[token[1]] = this.WordCode.length;
+
+		// Ensure the label ends correctly
+		token = this.Lexer.NextToken();
+		if (token[0] != dcpuTokens.END)
+		{
+			this.Report.ExpectingToken(dcpuTokens.END, token[0], this.Line);
+			return;
+		}
 	}
 
 
@@ -525,14 +542,17 @@ function dcpuAssembler(report)
 			// Is this a complex opcode?
 			if ((word & 0xF) == 0)
 			{
-				// Parse the single argument
-				var extra_words = [ ];
-				var a = this.ParseArgument(extra_words);
-				if (!a[0])
-					return false;
+				if (word == dcpuOpcodes.JSR)
+				{
+					// Parse the single argument
+					var extra_words = [ ];
+					var a = this.ParseArgument(extra_words);
+					if (!a[0])
+						return false;
 
-				// Merge instruction details
-				word |= a[1] << 10;
+					// Merge instruction details
+					word |= a[1] << 10;
+				}
 			}
 
 			else
@@ -566,7 +586,13 @@ function dcpuAssembler(report)
 
 	this.Assemble = function(asm)
 	{
+		// Reset assembler state
 		this.Lexer = new dcpuLexer(this.Report);
+		this.Labels = { };
+		this.LabelPatches = [ ];
+		this.WordCode = [ ];
+		this.Line = 0;
+		this.PCToLine = { };
 
 		// Split into lines and run the lexer on them individually
 		var lines = asm.split("\n");
@@ -588,6 +614,7 @@ function dcpuAssembler(report)
 					this.ParseLabel();
 					continue;
 				case (dcpuTokens.INSTRUCTION):
+					this.PCToLine[this.WordCode.length] = this.Line;
 					this.ParseInstruction(token);
 					break;
 
@@ -642,15 +669,17 @@ function dcpuEmulator()
 		this.SP = this.Registers + 8 + 1;
 		this.O  = this.Registers + 8 + 2;
 
+		// I can't believe I'm doing this... is there a better way?
+		for (var i = 0; i < this.WordMem.length; i++)
+			this.WordMem[i] = 0;
+		this.CodeLength = 0;
+
 		// Reset registers
 		this.WordMem[this.PC] = 0;
 		this.WordMem[this.SP] = 0xFFFF;
 		this.WordMem[this.O] = 0;
 
-		// I can't believe I'm doing this... is there a better way?
-		for (var i = 0; i < this.WordMem.length; i++)
-			this.WordMem[i] = 0;
-		this.CodeLength = 0;
+		this.CurrentLine = 0;
 	}
 
 
@@ -658,7 +687,7 @@ function dcpuEmulator()
 	this.Reset();
 
 
-	this.UploadCode = function(word_code)
+	this.UploadCode = function(word_code, pc_to_line)
 	{
 		this.Reset();
 
@@ -669,6 +698,9 @@ function dcpuEmulator()
 			var word = word_code[i];
 			this.WordMem[i] = word;
 		}
+
+		// Debug info maps program counter to line
+		this.PCToLine = pc_to_line;
 	}
 
 
@@ -690,7 +722,7 @@ function dcpuEmulator()
 
 		// Stack values that CAN NOT be used as address operands; this is implied by the instruction
 		if (arg == dcpuRegisters.POP)
-			return this.WordMem[this.SP]++;
+			return this.WordMem[this.SP];
 		if (arg == dcpuRegisters.PEEK)
 			return this.WordMem[this.SP];
 		if (arg == dcpuRegisters.PUSH)
@@ -717,10 +749,34 @@ function dcpuEmulator()
 	}
 
 
-	this.SetO = function(o)
-	{
-		this.WordMem[this.O] = o & 0xFFFF;
-	}
+	// Accessors for each register
+	this.GetReg = function(r) { return this.WordMem[this.Registers + r]; }
+	this.GetA = function() { return this.GetReg(0); }
+	this.GetB = function() { return this.GetReg(1); }
+	this.GetC = function() { return this.GetReg(2); }
+	this.GetX = function() { return this.GetReg(3); }
+	this.GetY = function() { return this.GetReg(4); }
+	this.GetZ = function() { return this.GetReg(5); }
+	this.GetI = function() { return this.GetReg(6); }
+	this.GetJ = function() { return this.GetReg(7); }
+	this.GetPC = function() { return this.GetReg(8); }
+	this.GetSP = function() { return this.GetReg(9); }
+	this.GetO = function() { return this.GetReg(10); }
+
+
+	// Mutators for each register
+	this.SetReg = function(r, v) { this.WordMem[this.Registers + r] = v & 0xFFFF; }
+	this.SetA = function(v) { this.SetReg(0, v); }
+	this.SetB = function(v) { this.SetReg(1, v); }
+	this.SetC = function(v) { this.SetReg(2, v); }
+	this.SetX = function(v) { this.SetReg(3, v); }
+	this.SetY = function(v) { this.SetReg(4, v); }
+	this.SetZ = function(v) { this.SetReg(5, v); }
+	this.SetI = function(v) { this.SetReg(6, v); }
+	this.SetJ = function(v) { this.SetReg(7, v); }
+	this.SetPC = function(v) { this.SetReg(8, v); }
+	this.SetSP = function(v) { this.SetReg(9, v); }
+	this.SetO = function(v) { this.SetReg(10, v); }
 
 
 	// Simple instructions listed by index using their opcode - brittle but fast
@@ -761,6 +817,11 @@ function dcpuEmulator()
 			var r = op.apply(this, [ this.WordMem[a], this.WordMem[b] ]);
 			if (r != null)
 				this.WordMem[a] = r & 0xFFFF;
+
+			// Only pop requires post-modification of its value (for the moment), so do it here
+			var arg = (instr >> 10) & 0x3F;
+			if (arg == dcpuRegisters.POP)
+				this.WordMem[this.SP]++;
 		}
 	}
 
@@ -787,13 +848,14 @@ function dcpuEmulator()
 	}
 
 
-	this.DecodeInstruction = function()
+	this.DecodeInstruction = function(skip_breakpoint)
 	{
 		// Don't execute into the ether!
 		if (this.WordMem[this.PC] >= this.CodeLength)
 			return;
 
 		var instr = this.WordMem[this.WordMem[this.PC]++];
+		var ret = true;
 
 		// Decode and execute simple instructions
 		var simple_op = instr & 0xF;
@@ -803,6 +865,17 @@ function dcpuEmulator()
 		// Only one complex op for the moment but that will no doubt change at a later date - update then
 		else if ((instr & 0xF0000) == dcpuOpcodes.JSR)
 			this.JSR(instr);
+
+		// Breakpoint extension - backtrack to keep constant
+		else if ((instr & 0xF0000) == dcpuOpcodes.BRK && !skip_breakpoint)
+		{
+			this.WordMem[this.PC]--;
+			return false;
+		}
+
+		// Map back to the original line the next instruction is at
+		this.CurrentLine = this.PCToLine[this.WordMem[this.PC]];
+		return true;
 	}
 
 
@@ -818,41 +891,31 @@ function dcpuEmulator()
 		// Get access to the pixels
 		var image_data = ctx.getImageData(0, 0, buffer.width, buffer.height);
 		var data = image_data.data;
+		var width_bytes = buffer.width * 4;
 
-		// This one nasty big hack but I'm too tired now
-		// Will clean it up later...
-		for (var i = 0; i < buffer.width; i += 4)
+		function SetColumn(data, width_bytes, offset_x, shift_offset)
 		{
 			var w = 0;
-			for (var y = 0; y < 8; y++)
+			for (var y = 0, o = offset_x; y < 8; y++, o += width_bytes)
 			{
-				var p = data[y * buffer.width * 4 + i * 4 + 0 * 4];
-				p = (p ? 0 : 1);
-				w |= (1 << y) * p;
+				var p = data[o];
+				if (!p)
+					w |= 1 << (y + shift_offset);
 			}
-			for (var y = 0; y < 8; y++)
-			{
-				var p = data[y * buffer.width * 4 + i * 4 + 1 * 4];
-				p = (p ? 0 : 1);
-				w |= (1 << (y+8)) * p;
-			}
+			return w;
+		}
 
+		// Set each column from the bitmap for each charactr
+		for (var i = 0; i < buffer.width; i += 4)
+		{
+			var px = i * 4;
+
+			var w = SetColumn(data, width_bytes, px + 0, 0);
+			w |= SetColumn(data, width_bytes, px + 4, 8);
 			this.WordMem[0x9000 + (32 + i / 4) * 2] = w;
 
-			var w = 0;
-			for (var y = 0; y < 8; y++)
-			{
-				var p = data[y * buffer.width * 4 + i * 4 + 2 * 4];
-				p = (p ? 0 : 1);
-				w |= (1 << y) * p;
-			}
-			for (var y = 0; y < 8; y++)
-			{
-				var p = data[y * buffer.width * 4 + i * 4 + 3 * 4];
-				p = (p ? 0 : 1);
-				w |= (1 << (y+8)) * p;
-			}
-
+			var w = SetColumn(data, width_bytes, px + 8, 0);
+			w |= SetColumn(data, width_bytes, px + 12, 8);
 			this.WordMem[0x9000 + (32 + i / 4) * 2 + 1] = w;
 		}
 	}
@@ -874,7 +937,7 @@ function dcpuEmulator()
 	}
 
 
-	this.GenerateVideoBuffer = function()
+	this.ClearVideoBuffer = function()
 	{
 		// Create the video buffer canvas on demand
 		if (!this.VideoBuffer)
@@ -890,6 +953,16 @@ function dcpuEmulator()
 		this.VideoBuffer.Ctx.fillStyle = "#000025";
 		this.VideoBuffer.Ctx.fillRect(0, 0, w, h);
 
+		return this.VideoBuffer;
+	}
+
+
+	this.GenerateVideoBuffer = function()
+	{
+		this.ClearVideoBuffer();
+
+		var w = this.VideoBuffer.width;
+		var h = this.VideoBuffer.height;
 		var image_data = this.VideoBuffer.Ctx.getImageData(0, 0, w, h);
 		var data = image_data.data;
 

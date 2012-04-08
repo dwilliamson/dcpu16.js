@@ -18,6 +18,37 @@
 
 	<body class="Background">
 
+		<div id="Info" class="Info">
+			LIVE EDIT ENVIRONMENT FOR MOJANG'S <a href="http://0x10c.com/doc/dcpu-16.txt">DCPU-16 MACHINE</a><br>
+			Code by <a href="https://twitter.com/#!/Donzanoid">@Donzanoid</a>, github repository <a href="https://github.com/dwilliamson/dcpu16.js">here</a>.
+			Click for <a href="" onclick="return ShowHelp()">HELP...</a>
+			
+		</div>
+
+		<div id="Help" class="Info InfoOpen" onclick="document.getElementById('Help').style.display='none'">
+			LIVE EDIT ENVIRONMENT FOR MOJANG'S <a href="http://0x10c.com/doc/dcpu-16.txt">DCPU-16 MACHINE</a><br>
+			Code by <a href="https://twitter.com/#!/Donzanoid">@Donzanoid</a>, github repository <a href="https://github.com/dwilliamson/dcpu16.js">here</a>.
+			Click for <a href="" onclick="return ShowHelp()">HELP...</a>
+			<br><br><br>
+			FEATURES:<br><br>
+			<li>Assembler runs each time you type, compiling to DCPU-16 bytecode.</li>
+			<li>Code is syntax-highlighted and errors display in-line as you type.</li>
+			<li>Machine is emulated and re-runs code changes on each successful compile.</li>
+			<li>Generate links to your code by clicking "Code Permalink" button.</li>
+			<li>Step debugger with programmatic or editor-toggled breakpoints.</li>
+			<br>
+			PROGRAMMING DETAILS:<br><br>
+			<li>Simulated 62.5kHz machine with each instruction taking 1 cycle (not per spec, yet).</li>
+			<li>Video memory located at 0x8000 with 30x10 characters, each character 8x4 in size.</li>
+			<li>Character set located at 0x9000: 2 words per character, each column taking 8-bits.</li>
+			<br><br>
+			<div style="width:50%">
+			USING THE DEBUGGER:<br><br>
+			While in the edit window, you can add a single "BRK" instruction anywhere in code to get the debugger to stop at that point. Press F10 to step into the next instruction and press F5 to continue execution. Alternatively, you can press F9 to toggle breakpoints on the line you're currently editing.
+			</div>
+
+		</div>
+
 		<div id="Display">
 			<canvas id="DisplayCanvas" width="100" height="100"></canvas>
 		</div>
@@ -62,22 +93,28 @@
 
 		</div>
 
-		<div id="Info">
-			LIVE EDIT ENVIRONMENT FOR MOJANG'S <a href="http://0x10c.com/doc/dcpu-16.txt">DCPU-16 MACHINE</a><br>
-			<br>
-			Features:<br>
-			<li>Assembler runs each time you type, compiling to DCPU-16 bytecode.</li>
-			<li>Code is syntax-highlighted and errors display in-line as you type.</li>
-			<li>Machine is emulated and re-runs code changes on each successful compile.</li>
-			<li>Generate links to your code by clicking "Code Permalink" button.</li>
-			<br>
-			Programming details:<br>
-			<li>Simulated 62.5kHz machine with each instruction taking 1 cycle (not per spec, yet).</li>
-			<li>Video memory located at 0x8000 with 30x10 characters, each character 8x4 in size.</li>
-			<li>Character set located at 0x9000: 2 words per character, each column taking 8-bits.</li>
-			<br>
-			Code by <a href="https://twitter.com/#!/Donzanoid">@Donzanoid</a>, github repository <a href="https://github.com/dwilliamson/dcpu16.js">here</a><br>
-			
+		<div id="Registers">
+			Register View<br>
+			<div class="Ruler"></div>
+			<div class="RegRow">
+				<div class="RegCol"><div class="RegName">A</div><div class="RegEdit"><input class="RegInput" id="Reg0"></div></input></div>
+				<div class="RegCol"><div class="RegName">B</div><div class="RegEdit"><input class="RegInput" id="Reg1"></div></input></div>
+				<div class="RegCol"><div class="RegName">C</div><div class="RegEdit"><input class="RegInput" id="Reg2"></div></input></div>
+			</div>
+			<div class="RegRow">
+				<div class="RegCol"><div class="RegName">X</div><div class="RegEdit"><input class="RegInput" id="Reg3"></div></input></div>
+				<div class="RegCol"><div class="RegName">Y</div><div class="RegEdit"><input class="RegInput" id="Reg4"></div></input></div>
+				<div class="RegCol"><div class="RegName">Z</div><div class="RegEdit"><input class="RegInput" id="Reg5"></div></input></div>
+			</div>
+			<div class="RegRow">
+				<div class="RegCol"><div class="RegName">I</div><div class="RegEdit"><input class="RegInput" id="Reg6"></div></input></div>
+				<div class="RegCol"><div class="RegName">J</div><div class="RegEdit"><input class="RegInput" id="Reg7"></div></input></div>
+			</div>
+			<div class="RegRow">
+				<div class="RegCol"><div class="RegName">PC</div><div class="RegEdit"><input class="RegInput" id="Reg8"></div></input></div>
+				<div class="RegCol"><div class="RegName">SP</div><div class="RegEdit"><input class="RegInput" id="Reg9"></div></input></div>
+				<div class="RegCol"><div class="RegName">O</div><div class="RegEdit"><input class="RegInput" id="Reg10"></div></input></div>
+			</div>
 		</div>
 
 		<script>
@@ -88,6 +125,21 @@
 		var ErrorNodes = [ ];
 		var Emulator = new dcpuEmulator();
 		var CharacterSet = null;
+
+
+		function ShowHelp()
+		{
+			var info = document.getElementById("Info");
+			var info_pos = getOffset(info);
+
+			var help = document.getElementById("Help");
+			help.style.display = "block";
+			help.style.width = info.offsetWidth;
+			help.style.left = info_pos.left;
+			help.style.top = info_pos.top - 10;
+			//info.className += " InfoOpen";
+			return false;
+		}
 
 
 		function OnCursorMove(cm)
@@ -126,7 +178,7 @@
 			indentWithTabs: true,
 			lineNumbers: true,
 			gutter: true,
-			onCursorActivity: OnCursorMove
+			onCursorActivity: OnCursorMove,
 		});
 
 
@@ -139,20 +191,40 @@
 		}
 
 
+		var DebuggerMode = "Run";
+		var DebuggerStepLine = -1;
+		var Report = new dcpuReport();
+		var Assembler = new dcpuAssembler(Report);
+
+
+		function StartEmulator()
+		{
+			Emulator.UploadCode(Assembler.WordCode, Assembler.PCToLine);
+
+			if (CharacterSet)
+				Emulator.UploadCharacterSet(CharacterSet);
+
+			DebuggerMode = "Run";
+		}
+
+
+		var RestartMachine = false;
+
+
 		function RepeatAssembleCurrentCode()
 		{
 			// Only run the assembler when changes have been found
 			var code = cm.getValue();
 			var code_hash = HashString(code);
-			if (LastCodeHash != code_hash)
+			if (LastCodeHash != code_hash || RestartMachine)
 			{
 				LastCodeHash = code_hash;
+				RestartMachine = false;
 
 				// Assemble the code bits
-				var report = new dcpuReport();
-				var assembler = new dcpuAssembler(report);
-				assembler.Assemble(code);
-				Errors = report.Content;
+				Report.Reset();
+				Assembler.Assemble(code);
+				Errors = Report.Content;
 
 				// Clear out error markers from the previous build
 				var nb_lines = cm.lineCount();
@@ -160,9 +232,9 @@
 					cm.setLineClass(i, null, null);
 
 				// Update with new error markers
-				for (var i in report.Content)
+				for (var i in Report.Content)
 				{
-					var content = report.Content[i];
+					var content = Report.Content[i];
 					var line = content[1];
 					cm.setLineClass(line - 1, null, "LineError");
 				}
@@ -170,13 +242,8 @@
 				OnCursorMove(cm);
 
 				// Update the emulator with the new code if there are no errors
-				if (!report.Content.length)
-				{
-					Emulator.UploadCode(assembler.WordCode);
-
-					if (CharacterSet)
-						Emulator.UploadCharacterSet(CharacterSet);
-				}
+				if (!Report.Content.length)
+					StartEmulator();
 			}
 
 			setTimeout(RepeatAssembleCurrentCode, 100);
@@ -186,36 +253,127 @@
 		var Time = 0;
 
 
+		function MonitorGlow()
+		{
+			// [0...1]
+			var t = Math.cos(Math.PI / 1000 * Time) * 0.5 + 0.5;
+			var d = document.getElementById("Display");
+			var color = lerprgb(0x0066FF, 0x004488, t);
+			var glow = "0px 0px 10px 5px #" + dec2hex(color) + " inset, 0px 0px 5px 2px #" + dec2hex(color);
+			changecssproperty(d, shadowprop, glow);
+		}
+
+
+		var Breakpoints = { };
+
+
+		CodeMirror.keyMap.default["F9"] = function()
+		{
+			var cursor_pos = cm.getCursor();
+
+			if ((cursor_pos.line + 1) in Breakpoints)
+			{
+				cm.clearMarker(cursor_pos.line);
+				delete Breakpoints[cursor_pos.line + 1];
+			}
+			else
+			{
+				cm.setMarker(cursor_pos.line, "<span class='BreakPoint'> </span> %N%");
+				Breakpoints[cursor_pos.line + 1] = true;
+			}
+		}
+
+
+		CodeMirror.keyMap.default["F10"] = function()
+		{
+			if (DebuggerMode == "Step")
+			{
+				if (DebuggerStepLine != -1)
+					cm.setLineClass(DebuggerStepLine, null, null);
+
+				// Step and instruct the emulator to step over BRK instructions
+				Emulator.DecodeInstruction(true);
+
+				DebuggerStepLine = Emulator.CurrentLine - 1;
+				cm.setLineClass(DebuggerStepLine, null, "DebugStepLine");
+
+				var pos = cm.charCoords({line: DebuggerStepLine, ch:0}, "page");
+				cm.scrollTo(0, pos.y - 400);
+			}
+		}
+
+
+		CodeMirror.keyMap.default["F5"] = function()
+		{
+			DebuggerMode = "Run";
+
+			// Force a line step over the current instruction (it might be a "BRK")
+			Emulator.DecodeInstruction(true);
+
+			if (DebuggerStepLine != -1)
+				cm.setLineClass(DebuggerStepLine, null, null);
+		}
+
+
 		function RepeatUpdateMachine()
 		{
 			// 60fps
-			setTimeout(RepeatUpdateMachine, 16);
+			tt = setTimeout(RepeatUpdateMachine, 16);
 			Time += 16;
 
-			// Effectively a 62.5kHz machine :)
-			for (var i = 0; i < 1000; i++)
-				Emulator.DecodeInstruction();
+			if (DebuggerMode == "Run")
+			{
+				// Effectively a 62.5kHz machine :)
+				for (var i = 0; i < 1000; i++)
+				{
+					if (Emulator.CurrentLine in Breakpoints)
+					{
+						DebuggerMode = "Step";
+						DebuggerStepLine = Emulator.CurrentLine - 1;
+						cm.setLineClass(DebuggerStepLine, null, "DebugStepLine");
+						console.log(Emulator.CurrentLine);
+						break;
+					}
 
+					if (!Emulator.DecodeInstruction())
+					{
+						// "BRK" instruction found
+						DebuggerMode = "Step";
+						DebuggerStepLine = Emulator.CurrentLine - 1;
+						cm.setLineClass(DebuggerStepLine, null, "DebugStepLine");
+						break;
+					}
+				}
+			}
+			else if (DebuggerMode == "Step")
+			{
+			}
+
+			// Resize canvas on-demand
 			var canvas = document.getElementById("DisplayCanvas");
-			canvas.style.position = "relative";
-			canvas.style.left = "10px";
-			canvas.style.top = "10px";
 			var w = canvas.parentNode.offsetWidth - 25;
 			var h = canvas.parentNode.offsetHeight - 25;
-			canvas.width = w;
-			canvas.height = h;
+			if (w != canvas.width || h != canvas.height)
+			{
+				canvas.style.position = "relative";
+				canvas.style.left = "10px";
+				canvas.style.top = "10px";
+				canvas.width = w;
+				canvas.height = h;
+			}
 
 			var ctx = canvas.getContext("2d");
 			var vb = Emulator.GenerateVideoBuffer();
 			ctx.drawImage(vb, 0, 0, canvas.width, canvas.height);
 
-			// [0...1]
-			var t = Math.cos(Math.PI / 1000 * Time) * 0.5 + 0.5;
+			MonitorGlow();
 
-			var d = document.getElementById("Display");
-			var color = lerprgb(0x0066FF, 0x004488, t);
-			var glow = "0px 0px 10px 5px #" + dec2hex(color) + " inset, 0px 0px 5px 2px #" + dec2hex(color);
-			changecssproperty(d, shadowprop, glow);
+			for (var i = 0; i < 11; i++)
+			{
+				var edit = document.getElementById("Reg" + i);
+				if (edit)
+					edit.value = Emulator.GetReg(i).toString(16);
+			}
 		}
 
 
@@ -249,7 +407,8 @@
 
 		</script>
 
-		<button class="Button" onclick="Permalink()">Code Permalink</button>
+		<button class="Button" style="left:86%" onclick="Permalink()">Code Permalink</button>
+		<button class="Button" style="left:80%" onclick="RestartMachine=true">Restart</button>
 
 	</body>
 

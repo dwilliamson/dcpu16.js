@@ -30,35 +30,120 @@
 }
 
 
-#Info
+#Registers
 {
 	float:left;
 	width:48.5%;
+	height:20%;
 	margin-top:10px;
+
+	font-size:10px;
+	font-family:verdana;
+
+	color: #F8F8F2;
+	background-color: #272822;
+
+	border:0px;
+	border-top: 1px solid #3C3D39;
+	border-left: 1px solid #3C3D39;
+	border-right: 1px solid #2C2D29;
+	border-bottom: 1px solid #2C2D29;
+
+	padding: 5px;
+
+	-webkit-box-shadow: 0px 0px 0px 1px #0b0c0a;
+	   -moz-box-shadow: 0px 0px 0px 1px #0b0c0a;
+	        box-shadow: 0px 0px 0px 1px #0b0c0a;
+}
+
+
+.Info
+{
+	width:98.5%;
+	margin:10px 0 10px 0;
 	padding:5px;
 	border: 1px dashed black;
 	color:#777;
 	background-color: #151515;
-	font-family:monospace;
-	font-size:10px
+	font-size:10px;
+	font-family:verdana;
 }
 
 
-#Info a
+.Info a
 {
 	color:#CCC;
 	text-decoration:none;
 }
-#Info a:hover
+.Info a:hover
 {
 	border-bottom: 1px dotted white;
+}
+.InfoOpen
+{
+	position:fixed;
+	display:none;
+	height:90%;
+	z-index:20;
+	opacity:0.9;
+}
+
+
+.BreakPoint
+{
+	background-image:url('breakpoint.gif');
+	background-repeat:no-repeat;
+}
+.DebugStepLine
+{
+	border-radius: 3px !important;
+	background-color: #550000 !important;
+}
+
+
+.Ruler
+{
+	width:100%;
+	margin: 2px 0 6px 0;
+	border-bottom: 1px solid #999;
+}
+
+
+.RegRow
+{
+	width:40%;
+	clear:both;
+}
+.RegCol
+{
+	float:left;
+	width:33%;
+}
+.RegName
+{
+	float:left;
+	width:20%;
+}
+.RegEdit
+{
+	float:left;
+	width:80%;
+}
+.RegInput
+{
+	width:50px;
+	height:15px;
+
+	border: 1px solid black;
+
+	font-family:verdana;
+	font-size:10px;
 }
 
 
 .Button
 {
 	position:absolute;
-	left:88%;
 
 	font-family:monospace;
 
@@ -127,6 +212,10 @@
 }
 
 
+.CodeMirror-gutter
+{
+	width:4em;
+}
 .CodeMirror-gutter-text
 {
 	border-right: 1px solid #333;
