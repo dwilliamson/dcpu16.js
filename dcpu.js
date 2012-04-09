@@ -124,7 +124,24 @@ dcpuRegisters = {
 	PUSH: 0x1A
 };
 
-
+dcpuVideoColors={
+	0: {R: 0x00, G: 0x00, B: 0x00},
+	1: {R: 0x00, G: 0x00, B: 0x7F},	
+	2: {R: 0x00, G: 0x7F, B: 0x00},
+	3: {R: 0x00, G: 0x7F, B: 0x7F},		
+	4: {R: 0x7F, G: 0x00, B: 0x00},
+	5: {R: 0x7F, G: 0x00, B: 0x7F},	
+	6: {R: 0x7F, G: 0x7F, B: 0x00},
+	7: {R: 0x7F, G: 0x7F, B: 0x7F},	
+	8: {R: 0x30, G: 0x30, B: 0x30},
+	9: {R: 0x00, G: 0x00, B: 0xFF},	
+	10: {R: 0x00, G: 0xFF, B: 0x00},
+	11: {R: 0x00, G: 0xFF, B: 0xFF},		
+	12: {R: 0xFF, G: 0x00, B: 0x00},
+	13: {R: 0xFF, G: 0x00, B: 0xFF},	
+	14: {R: 0xFF, G: 0xFF, B: 0x00},
+	15: {R: 0xFF, G: 0xFF, B: 0xFF}	
+};
 
 // =====================================================================================================================
 // Lexer for the DCPU Assembly Language
@@ -931,15 +948,20 @@ function dcpuVideoDisplay()
 	}
 
 
-	function DrawColumn(data, po, line_width, c)
+	function DrawColumn(data, po, line_width, c, fg, bg)
 	{
 		for (var i = 0; i < 8; i++)
 		{
 			if (c & 1)
 			{
-				data[po+0] = 0x33;
-				data[po+1] = 0x66;
-				data[po+2] = 0xFF;
+				data[po+0] = dcpuVideoColors[fg].R;
+				data[po+1] = dcpuVideoColors[fg].G;
+				data[po+2] = dcpuVideoColors[fg].B;
+			}
+			else if (bg != 0) {
+				data[po+0] = dcpuVideoColors[bg].R;
+				data[po+1] = dcpuVideoColors[bg].G;
+				data[po+2] = dcpuVideoColors[bg].B;
 			}
 			po += line_width;
 			c >>= 1;
@@ -976,19 +998,21 @@ function dcpuVideoDisplay()
 		{
 			for (var x = 0; x < w; x += 4, i++, po += char_width)
 			{
-				var ccode = emulator.WordMem[0x8000 + i] & 0x7F
-				if (ccode)
+				var ccode = emulator.WordMem[0x8000 + i] 
+				if (ccode & 0x7F)
 				{
 					// Locate the two words defining the character
-					var coffs = 0x9000 + ccode * 2;
+					var coffs = 0x9000 + (ccode & 0x7F) * 2;					
 					var w0 = emulator.WordMem[coffs + 0];
 					var w1 = emulator.WordMem[coffs + 1];
+					var fg = (ccode >> 12) & 0xF;
+					var bg = (ccode >> 8) & 0xF;					
 
 					// Split into the 4 columns and draw
-					DrawColumn(data, po, w * 4, w0 & 0xFF);
-					DrawColumn(data, po + 4, w * 4, w0 >> 8);
-					DrawColumn(data, po + 8, w * 4, w1 & 0xFF);
-					DrawColumn(data, po + 12, w * 4, w1 >> 8);
+					DrawColumn(data, po, w * 4, w0 & 0xFF, fg, bg);
+					DrawColumn(data, po + 4, w * 4, w0 >> 8, fg, bg);
+					DrawColumn(data, po + 8, w * 4, w1 & 0xFF, fg, bg);
+					DrawColumn(data, po + 12, w * 4, w1 >> 8, fg, bg);
 				}
 			}
 		}
