@@ -303,8 +303,9 @@
 				DebuggerStepLine = Emulator.CurrentLine - 1;
 				cm.setLineClass(DebuggerStepLine, null, "DebugStepLine");
 
-				var pos = cm.charCoords({line: DebuggerStepLine, ch:0}, "page");
-				cm.scrollTo(0, pos.y - 400);
+				// CodeMirror's charCoords seems to have a crazy bug so do the line calc by hand
+				var y = Math.max(0, DebuggerStepLine * 13 - 100);
+				cm.scrollTo(0, y);
 			}
 		}
 

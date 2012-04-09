@@ -73,8 +73,10 @@ function dcpuReport()
 
 dcpuOpcodes = {
 
+	// Breakpoint/halt instruction
+	BRK: 0x0000,
+
 	// Basic opcodes
-	NUL: 0x00,
 	SET: 0x01,
 	ADD: 0x02,
 	SUB: 0x03,
@@ -92,8 +94,7 @@ dcpuOpcodes = {
 	IFB: 0x0F,
 
 	// Non-basic opcodes
-	JSR: 0x10000,
-	BRK: 0x20000,	// custom breakpoint extension
+	JSR: 0x10,
 
 	// Not an opcode - purely here for the lexer
 	DAT: 0xFFFFFFFF,
@@ -852,10 +853,13 @@ function dcpuEmulator()
 	{
 		// Don't execute into the ether!
 		if (this.WordMem[this.PC] >= this.CodeLength)
-			return;
+			return false;
 
-		var instr = this.WordMem[this.WordMem[this.PC]++];
-		var ret = true;
+		// Get next instruction and leave on BRK
+		var instr = this.WordMem[this.WordMem[this.PC]];
+		if (instr == 0 && !skip_breakpoint)
+			return false;
+		this.WordMem[this.PC]++;
 
 		// Decode and execute simple instructions
 		var simple_op = instr & 0xF;
@@ -863,15 +867,8 @@ function dcpuEmulator()
 			this.SimpleOp(instr, this.SimpleInstructions[simple_op]);
 
 		// Only one complex op for the moment but that will no doubt change at a later date - update then
-		else if ((instr & 0xF0000) == dcpuOpcodes.JSR)
+		else if ((instr & 0x3F0) == dcpuOpcodes.JSR)
 			this.JSR(instr);
-
-		// Breakpoint extension - backtrack to keep constant
-		else if ((instr & 0xF0000) == dcpuOpcodes.BRK && !skip_breakpoint)
-		{
-			this.WordMem[this.PC]--;
-			return false;
-		}
 
 		// Map back to the original line the next instruction is at
 		this.CurrentLine = this.PCToLine[this.WordMem[this.PC]];
