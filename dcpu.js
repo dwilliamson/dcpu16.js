@@ -874,9 +874,12 @@ function dcpuEmulator()
 		this.CurrentLine = this.PCToLine[this.WordMem[this.PC]];
 		return true;
 	}
+}
 
 
-	this.UploadCharacterSet = function(image)
+function dcpuVideoDisplay()
+{
+	this.GenerateCharacterSet = function(image)
 	{
 		// Create a canvas and blit the image into that
 		var buffer = document.createElement("canvas");
@@ -903,18 +906,28 @@ function dcpuEmulator()
 		}
 
 		// Set each column from the bitmap for each charactr
+		var wordmem = [ ];
 		for (var i = 0; i < buffer.width; i += 4)
 		{
 			var px = i * 4;
 
 			var w = SetColumn(data, width_bytes, px + 0, 0);
 			w |= SetColumn(data, width_bytes, px + 4, 8);
-			this.WordMem[0x9000 + (32 + i / 4) * 2] = w;
+			wordmem[(32 + i / 4) * 2] = w;
 
 			var w = SetColumn(data, width_bytes, px + 8, 0);
 			w |= SetColumn(data, width_bytes, px + 12, 8);
-			this.WordMem[0x9000 + (32 + i / 4) * 2 + 1] = w;
+			wordmem[(32 + i / 4) * 2 + 1] = w;
 		}
+
+		return wordmem;
+	}
+
+
+	this.UploadCharacterSet = function(emulator, wordmem)
+	{
+		for (var i = 0; i < wordmem.length; i++)
+			emulator.WordMem[0x9000 + i] = wordmem[i];
 	}
 
 
@@ -934,33 +947,26 @@ function dcpuEmulator()
 	}
 
 
-	this.ClearVideoBuffer = function()
+	this.GenerateCanvas = function(emulator)
 	{
-		// Create the video buffer canvas on demand
-		if (!this.VideoBuffer)
+		// Create the canvas on demand
+		if (!this.Canvas)
 		{
-			this.VideoBuffer = document.createElement("canvas");
-			this.VideoBuffer.width = 32 * 4;
-			this.VideoBuffer.height = 12 * 8;
-			this.VideoBuffer.Ctx = this.VideoBuffer.getContext("2d");
+			this.Canvas = document.createElement("canvas");
+			this.Canvas.width = 32 * 4;
+			this.Canvas.height = 12 * 8;
+			this.Canvas.Ctx = this.Canvas.getContext("2d");
 		}
 
-		var w = this.VideoBuffer.width;
-		var h = this.VideoBuffer.height;
-		this.VideoBuffer.Ctx.fillStyle = "#000025";
-		this.VideoBuffer.Ctx.fillRect(0, 0, w, h);
+		// Clear the canvas
+		var w = this.Canvas.width;
+		var h = this.Canvas.height;
+		this.Canvas.Ctx.fillStyle = "#000025";
+		this.Canvas.Ctx.fillRect(0, 0, w, h);
 
-		return this.VideoBuffer;
-	}
-
-
-	this.GenerateVideoBuffer = function()
-	{
-		this.ClearVideoBuffer();
-
-		var w = this.VideoBuffer.width;
-		var h = this.VideoBuffer.height;
-		var image_data = this.VideoBuffer.Ctx.getImageData(0, 0, w, h);
+		// Read-back the contents of the canvas
+		// TODO: Must be a quicker way of doing this...
+		var image_data = this.Canvas.Ctx.getImageData(0, 0, w, h);
 		var data = image_data.data;
 
 		var line_width = w * 7 * 4;
@@ -970,13 +976,13 @@ function dcpuEmulator()
 		{
 			for (var x = 0; x < w; x += 4, i++, po += char_width)
 			{
-				var ccode = Emulator.WordMem[0x8000 + i] & 0x7F
+				var ccode = emulator.WordMem[0x8000 + i] & 0x7F
 				if (ccode)
 				{
 					// Locate the two words defining the character
 					var coffs = 0x9000 + ccode * 2;
-					var w0 = Emulator.WordMem[coffs + 0];
-					var w1 = Emulator.WordMem[coffs + 1];
+					var w0 = emulator.WordMem[coffs + 0];
+					var w1 = emulator.WordMem[coffs + 1];
 
 					// Split into the 4 columns and draw
 					DrawColumn(data, po, w * 4, w0 & 0xFF);
@@ -987,7 +993,8 @@ function dcpuEmulator()
 			}
 		}
 
-		this.VideoBuffer.Ctx.putImageData(image_data, 0 , 0);
-		return this.VideoBuffer;
+		// Blit results and return the canvas
+		this.Canvas.Ctx.putImageData(image_data, 0 , 0);
+		return this.Canvas;
 	}
 }

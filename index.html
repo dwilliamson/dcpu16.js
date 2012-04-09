@@ -123,6 +123,7 @@
 		var Errors = [ ];
 		var ErrorNodes = [ ];
 		var Emulator = new dcpuEmulator();
+		var VideoDisplay = new dcpuVideoDisplay();
 		var CharacterSet = null;
 
 
@@ -136,7 +137,6 @@
 			help.style.width = info.offsetWidth;
 			help.style.left = info_pos.left;
 			help.style.top = info_pos.top - 10;
-			//info.className += " InfoOpen";
 			return false;
 		}
 
@@ -203,9 +203,8 @@
 		function StartEmulator()
 		{
 			Emulator.UploadCode(Assembler.WordCode, Assembler.PCToLine);
-
 			if (CharacterSet)
-				Emulator.UploadCharacterSet(CharacterSet);
+				VideoDisplay.UploadCharacterSet(Emulator, CharacterSet);
 
 			DebuggerMode = "Run";
 			
@@ -370,7 +369,7 @@
 			}
 
 			var ctx = canvas.getContext("2d");
-			var vb = Emulator.GenerateVideoBuffer();
+			var vb = VideoDisplay.GenerateCanvas(Emulator);
 			ctx.drawImage(vb, 0, 0, canvas.width, canvas.height);
 
 			MonitorGlow();
@@ -397,8 +396,8 @@
 			var image = new Image();
 			image.onload = function()
 			{
-				Emulator.UploadCharacterSet(this);
-				CharacterSet = this;
+				CharacterSet = VideoDisplay.GenerateCharacterSet(this);
+				VideoDisplay.UploadCharacterSet(Emulator, CharacterSet);
 			}
 			image.src = "font.gif";
 		}
