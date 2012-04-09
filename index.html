@@ -55,8 +55,7 @@
 
 		<div id="CodeEditor">
 
-			<textarea id="CodeTextArea">
-; Assembler test for DCPU
+			<textarea id="CodeTextArea">; Assembler test for DCPU
 ; by Markus Persson
 
 :start
@@ -110,7 +109,7 @@
 				<div class="RegCol"><div class="RegName">I</div><div class="RegEdit"><input class="RegInput" id="Reg6"></div></input></div>
 				<div class="RegCol"><div class="RegName">J</div><div class="RegEdit"><input class="RegInput" id="Reg7"></div></input></div>
 			</div>
-			<div class="RegRow">
+			<div class="RegRow ">
 				<div class="RegCol"><div class="RegName">PC</div><div class="RegEdit"><input class="RegInput" id="Reg8"></div></input></div>
 				<div class="RegCol"><div class="RegName">SP</div><div class="RegEdit"><input class="RegInput" id="Reg9"></div></input></div>
 				<div class="RegCol"><div class="RegName">O</div><div class="RegEdit"><input class="RegInput" id="Reg10"></div></input></div>
@@ -181,7 +180,11 @@
 			onCursorActivity: OnCursorMove,
 		});
 
-
+		
+		if (typeof(Storage) !== "undefined" && localStorage.code) {
+			cm.setValue(localStorage.code);
+		}
+		
 		// Populate with any code found in the URL
 		var loc = window.location.href;
 		if (loc.indexOf("#") != -1)
@@ -205,6 +208,9 @@
 				Emulator.UploadCharacterSet(CharacterSet);
 
 			DebuggerMode = "Run";
+			
+			if (typeof(Storage) !== "undefined")
+				localStorage.code = cm.getValue();
 		}
 
 
@@ -371,8 +377,11 @@
 			for (var i = 0; i < 11; i++)
 			{
 				var edit = document.getElementById("Reg" + i);
-				if (edit)
+				if (edit) 
+				{
 					edit.value = Emulator.GetReg(i).toString(16);
+					edit.setAttribute("title", "dec: " + Emulator.GetReg(i).toString());
+				}
 			}
 		}
 
