@@ -111,33 +111,38 @@
 
 .RegRow
 {
-	width:40%;
+	width:50%;
 	clear:both;
 }
 .RegCol
 {
 	float:left;
 	width:33%;
+	padding:5px 0;
 }
 .RegName
 {
 	float:left;
-	width:20%;
+	width:25%;
+	padding:2px 0 0 0;
 }
 .RegEdit
 {
 	float:left;
-	width:80%;
 }
 .RegInput
 {
 	width:50px;
-	height:15px;
-
+	height:19px;
+	padding:2px;
 	border: 1px solid black;
+	border-bottom:1px solid #979892;
+	border-right:1px solid #979892;
 
 	font-family:verdana;
 	font-size:10px;
+	
+	background-color:#676862;
 }
 
 
