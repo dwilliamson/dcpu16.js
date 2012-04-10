@@ -998,3 +998,58 @@ function dcpuVideoDisplay()
 		return this.Canvas;
 	}
 }
+
+
+function dcpuKeyboard(emulator, target_node)
+{
+	// Some cross-browser helpers
+	var GetEvent = function(evt)
+	{
+		return evt || window.event;
+	}
+	var GetEventNode = function(evt)
+	{
+		var node = evt.target || evt.srcElement;
+		if (node.nodeType == 3) // safari bug
+			node = node.parentNode;
+
+		return node;
+	}
+
+
+	document.onkeydown = function(evt)
+	{
+		// Ensure the keypress is in the target node
+		var evt = GetEvent(evt);
+		var node = GetEventNode(evt);
+		if (node != target_node)
+			return;
+
+		// OR in the keypress for the given keycode
+		if (evt.keyCode < 128)
+		{
+			var index = evt.keyCode >> 4;
+			var offset = evt.keyCode & 15;
+			console.log(index, offset)
+			emulator.WordMem[0xA000 + index] |= (1 << offset);
+		}
+	}
+
+
+	document.onkeyup = function(evt)
+	{
+		// Ensure the keypress is in the target node
+		var evt = GetEvent(evt);
+		var node = GetEventNode(evt);
+		if (node != target_node)
+			return;
+
+		// Clear the keypress for the given keycode
+		if (evt.keyCode < 128)
+		{
+			var index = evt.keyCode >> 4;
+			var offset = evt.keyCode & 15;
+			emulator.WordMem[0xA000 + index] &= ~(1 << offset);
+		}
+	}
+}
