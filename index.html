@@ -398,7 +398,7 @@
 			image.onload = function()
 			{
 				CharacterSet = VideoDisplay.GenerateCharacterSet(this);
-				VideoDisplay.UploadCharacterSet(Emulator, CharacterSet);
+				RestartMachine();
 			}
 			image.src = "font.gif";
 		}
