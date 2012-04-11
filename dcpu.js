@@ -1030,7 +1030,6 @@ function dcpuKeyboard(emulator, target_node)
 		{
 			var index = evt.keyCode >> 4;
 			var offset = evt.keyCode & 15;
-			console.log(index, offset)
 			emulator.WordMem[0xA000 + index] |= (1 << offset);
 		}
 	}

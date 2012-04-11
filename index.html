@@ -338,7 +338,6 @@
 						DebuggerMode = "Step";
 						DebuggerStepLine = Emulator.CurrentLine - 1;
 						cm.setLineClass(DebuggerStepLine, null, "DebugStepLine");
-						console.log(Emulator.CurrentLine);
 						break;
 					}
 
@@ -398,7 +397,7 @@
 			image.onload = function()
 			{
 				CharacterSet = VideoDisplay.GenerateCharacterSet(this);
-				RestartMachine();
+				RestartMachine = true;
 			}
 			image.src = "font.gif";
 		}
