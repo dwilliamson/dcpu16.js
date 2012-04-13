@@ -415,17 +415,6 @@ function dcpuAssembler(report)
 		}
 
 		this.Labels[token[1]] = this.WordCode.length;
-
-		//token = this.Lexer.NextToken();
-		//if (token[0] == 
-
-		// Ensure the label ends correctly
-		//token = this.Lexer.NextToken();
-		//if (token[0] != dcpuTokens.END)
-		//{
-		//	this.Report.ExpectingToken(dcpuTokens.END, token[0], this.Line);
-		//	return;
-		//}
 	}
 
 
