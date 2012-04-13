@@ -94,10 +94,7 @@ dcpuOpcodes = {
 	IFB: 0x0F,
 
 	// Non-basic opcodes
-	JSR: 0x10,
-
-	// Not an opcode - purely here for the lexer
-	DAT: 0xFFFFFFFF,
+	JSR: 0x10
 };
 
 
@@ -139,7 +136,7 @@ var dcpuTokens = {
 
 	// Basic characters
 	COLON:":",
-	SEMICOLON:";",
+	COMMENT:";",
 	COMMA:",",
 	LBRACKET:"[",
 	RBRACKET:"]",
@@ -150,6 +147,7 @@ var dcpuTokens = {
 	REGISTER:"REGISTER",
 	DOTDIRECTIVE:"DOT DIRECTIVE",
 	LABEL:"LABEL",
+	DATA:"DATA",
 
 	// Values
 	NUMBER:"NUMBER",
@@ -264,16 +262,24 @@ function dcpuLexer(report)
 		// Promote all text to uppercase
 		text = text.toUpperCase();
 
-		// First check to see if the text is an instruction or register
+		// First check to see if the text can be recognised as something other than a label
 		if (text in dcpuOpcodes)
 			return [ dcpuTokens.INSTRUCTION, dcpuOpcodes[text] ];
 		if (text in dcpuRegisters)
 			return [ dcpuTokens.REGISTER, dcpuRegisters[text] ];
-		if (text != "" && text[0] == '.') {
+		if (text != "" && text[0] == '.')
 			return [ dcpuTokens.DOTDIRECTIVE, text ];
-		}
+		if (text == "DAT")
+			return [ dcpuTokens.DATA, text ];
 
 		return [ dcpuTokens.LABEL, text ];
+	}
+
+
+	this.SkipComment = function()
+	{
+		this.Pos = this.Length;
+		return [ dcpuTokens.COMMENT, null ];
 	}
 
 
@@ -286,13 +292,15 @@ function dcpuLexer(report)
 			{
 				// Basic character token values are the same as their characters
 				case (":"):
-				case (";"):
 				case (","):
 				case ("["):
 				case ("]"):
 				case ("+"):
 					this.Pos++;
 					return [ c, null ];
+
+				case (";"):
+					return this.SkipComment();
 
 				case ('"'):
 					return this.ParseString();
@@ -365,6 +373,37 @@ function dcpuAssembler(report)
 	}
 
 
+	this.ParseData = function()
+	{
+		while (true)
+		{
+			// Check for exit
+			var token = this.Lexer.NextToken();
+			if (token[0] == dcpuTokens.END)
+				break;
+			if (token[0] == dcpuTokens.INVALID)
+			{
+				this.Report.UnexpectedToken(token[0], this.Line);
+				break;
+			}
+
+			// Push directly into byte-code depending upon the token type
+			var value = token[1];
+			switch (token[0])
+			{
+				case (dcpuTokens.NUMBER):
+					this.WordCode.push(value);
+					break;
+
+				case (dcpuTokens.STRING):
+					for (var i in value)
+						this.WordCode.push(value.charCodeAt(i));
+					break;
+			}
+		}
+	}
+
+
 	this.ParseLabel = function()
 	{
 		// Get the label name
@@ -377,13 +416,16 @@ function dcpuAssembler(report)
 
 		this.Labels[token[1]] = this.WordCode.length;
 
+		//token = this.Lexer.NextToken();
+		//if (token[0] == 
+
 		// Ensure the label ends correctly
-		token = this.Lexer.NextToken();
-		if (token[0] != dcpuTokens.END)
-		{
-			this.Report.ExpectingToken(dcpuTokens.END, token[0], this.Line);
-			return;
-		}
+		//token = this.Lexer.NextToken();
+		//if (token[0] != dcpuTokens.END)
+		//{
+		//	this.Report.ExpectingToken(dcpuTokens.END, token[0], this.Line);
+		//	return;
+		//}
 	}
 
 
@@ -511,80 +553,79 @@ function dcpuAssembler(report)
 		var word = token[1];
 		var extra_words = [ ];
 
-		// Inline data definition
-		if (word == dcpuOpcodes.DAT)
+		// Is this a complex opcode?
+		if ((word & 0xF) == 0)
 		{
-			while (true)
+			if (word == dcpuOpcodes.JSR)
 			{
-				// Check for exit
-				token = this.Lexer.NextToken();
-				if (token[0] == dcpuTokens.END)
-					break;
-				if (token[0] == dcpuTokens.INVALID)
-				{
-					this.Report.UnexpectedToken(token[0], this.Line);
-					break;
-				}
+				// Parse the single argument
+				var extra_words = [ ];
+				var a = this.ParseArgument(extra_words);
+				if (!a[0])
+					return false;
 
-				// Push directly into byte-code depending upon the token type
-				var value = token[1];
-				switch (token[0])
-				{
-					case (dcpuTokens.NUMBER):
-						this.WordCode.push(value);
-						break;
-
-					case (dcpuTokens.STRING):
-						for (var i in value)
-							this.WordCode.push(value.charCodeAt(i));
-						break;
-				}
+				// Merge instruction details
+				word |= a[1] << 10;
 			}
 		}
 
 		else
 		{
-			// Is this a complex opcode?
-			if ((word & 0xF) == 0)
+			// Parse both arguments				
+			var a = this.ParseArgument(extra_words);
+			if (!a[0])
+				return false;
+			var token = this.Lexer.NextToken();
+			if (token[0] != dcpuTokens.COMMA)
 			{
-				if (word == dcpuOpcodes.JSR)
-				{
-					// Parse the single argument
-					var extra_words = [ ];
-					var a = this.ParseArgument(extra_words);
-					if (!a[0])
-						return false;
-
-					// Merge instruction details
-					word |= a[1] << 10;
-				}
+				this.Report.ExpectingToken(dcpuTokens.COMMA, token[0], this.Line);
+				return false;
 			}
+			var b = this.ParseArgument(extra_words);
+			if (!b[0])
+				return false;
 
-			else
-			{
-				// Parse both arguments				
-				var a = this.ParseArgument(extra_words);
-				if (!a[0])
-					return false;
-				var token = this.Lexer.NextToken();
-				if (token[0] != dcpuTokens.COMMA)
-				{
-					this.Report.ExpectingToken(dcpuTokens.COMMA, token[0], this.Line);
-					return false;
-				}
-				var b = this.ParseArgument(extra_words);
-				if (!b[0])
-					return false;
+			// Merge instruction details
+			word |= a[1] << 4;
+			word |= b[1] << 10;
+		}
 
-				// Merge instruction details
-				word |= a[1] << 4;
-				word |= b[1] << 10;
-			}
+		// Add to the generated code
+		this.WordCode.push(word);
+		for (var j in extra_words)
+			this.WordCode.push(extra_words[j]);
+	}
 
-			// Add to the generated code
-			this.WordCode.push(word);
-			for (var j in extra_words)
-				this.WordCode.push(extra_words[j]);
+
+	this.ParseLine = function(token)
+	{
+		switch (token[0])
+		{
+			// Skip comments and empty lines
+			case (dcpuTokens.COMMENT):
+			case (dcpuTokens.END):
+				break;
+
+			// Skip .size, .text, .data, etc directives
+			case (dcpuTokens.DOTDIRECTIVE):
+				break;
+
+			case (dcpuTokens.DATA):
+				this.ParseData();
+				break;
+
+			// Only accept labels and instructions
+			case (dcpuTokens.COLON):
+				this.ParseLabel();
+				break;
+			case (dcpuTokens.INSTRUCTION):
+				this.PCToLine[this.WordCode.length] = this.Line;
+				this.ParseInstruction(token);
+				break;
+
+			default:
+				this.Report.UnexpectedToken(token[0], this.Line);
+				break;
 		}
 	}
 
@@ -606,37 +647,15 @@ function dcpuAssembler(report)
 			this.Line = parseInt(i) + 1;
 			this.Lexer.SetText(lines[i], this.Line);
 			var token = this.Lexer.NextToken();
+			this.ParseLine(token);
 
-			switch (token[0])
-			{
-				// Skip comments and empty lines
-				case (dcpuTokens.SEMICOLON):
-				case (dcpuTokens.END):
-					continue;
-
-				// Skip .size, .text, .data, etc directives
-				case (dcpuTokens.DOTDIRECTIVE):
-					continue;
-
-
-				// Only accept labels and instructions
-				case (dcpuTokens.COLON):
-					this.ParseLabel();
-					continue;
-				case (dcpuTokens.INSTRUCTION):
-					this.PCToLine[this.WordCode.length] = this.Line;
-					this.ParseInstruction(token);
-					break;
-
-				default:
-					this.Report.UnexpectedToken(token[0], this.Line);
-					break;
-			}
-
-			// Catch any trailing characters
+			// Catch any second instructions
 			token = this.Lexer.NextToken();
-			if (token[0] != dcpuTokens.END && token[0] != dcpuTokens.SEMICOLON)
-				this.Report.Error("End of line expected", this.Line);
+			if (token[0] != dcpuTokens.END && token[0] != dcpuTokens.COMMENT)
+			{
+				console.log(token);
+				this.ParseLine(token);
+			}
 		}
 
 		// Patch up all label references

@@ -48,7 +48,7 @@ CodeMirror.defineMode("dcpu", function(config, parserConfig)
 		stream.eatWhile(/[\w\$_]/);
 
 		var cur = stream.current();
-		if (keywords.propertyIsEnumerable(cur))
+		if (keywords.propertyIsEnumerable(cur.toLowerCase()))
 			return "keyword";
 
 		return "word";
