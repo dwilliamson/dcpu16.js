@@ -148,6 +148,7 @@ var dcpuTokens = {
 	// Keywords/text
 	INSTRUCTION:"INSTRUCTION",
 	REGISTER:"REGISTER",
+	DOTDIRECTIVE:"DOT DIRECTIVE",
 	LABEL:"LABEL",
 
 	// Values
@@ -268,6 +269,9 @@ function dcpuLexer(report)
 			return [ dcpuTokens.INSTRUCTION, dcpuOpcodes[text] ];
 		if (text in dcpuRegisters)
 			return [ dcpuTokens.REGISTER, dcpuRegisters[text] ];
+		if (text != "" && text[0] == '.') {
+			return [ dcpuTokens.DOTDIRECTIVE, text ];
+		}
 
 		return [ dcpuTokens.LABEL, text ];
 	}
@@ -609,6 +613,11 @@ function dcpuAssembler(report)
 				case (dcpuTokens.SEMICOLON):
 				case (dcpuTokens.END):
 					continue;
+
+				// Skip .size, .text, .data, etc directives
+				case (dcpuTokens.DOTDIRECTIVE):
+					continue;
+
 
 				// Only accept labels and instructions
 				case (dcpuTokens.COLON):
