@@ -819,7 +819,7 @@ function dcpuEmulator()
 		null,
 		function(a, b) { return b; },
 		function(a, b) { var r = a + b; this.SetO(r > 0xFFFF ? 1 : 0); return r; },
-		function(a, b) { var r = a - b; this.SetO(r < 0 ? 0xFFFF : 0); return r < 0 ? r + 0xFFFF : r; },
+		function(a, b) { var r = a - b; this.SetO(r < 0 ? 0xFFFF : 0); return r < 0 ? r + 0x10000 : r; },
 		function(a, b) { var r = a * b; this.SetO(r >> 16); return r; },
 		function(a, b) { if (b == 0) { this.SetO(0); return 0; } var r = a / b; this.SetO((a << 16) / b); return r; },
 		function(a, b) { var r = b == 0 ? 0: a % b; return r; },
